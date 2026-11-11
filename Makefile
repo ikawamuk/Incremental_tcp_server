@@ -1,18 +1,20 @@
 NAME	=	reactor
-CXX		=	cc
+CXX		=	c++
 CXXFLAG	=	-Wall -Wextra -Werror -I$(INCDIR) -g -fsanitize=address,undefined
 
-SRCS	=	$(wildcard $(SRCDIR)/*.c)
-OBJS	=	$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCS))
+SRCS	=	$(wildcard $(SRCDIR)/*.cpp)
+OBJS	=	$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
 SRCDIR	=	src
 OBJDIR	=	obj
 INCDIR	=	include
 
+all: $(NAME)
+
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAG) $^ -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAG) -c $< -o $@
 
@@ -22,6 +24,7 @@ clean:
 fclean: clean
 	rm -f $(NAME)
 
-re: fclean all
+re: fclean
+	$(MAKE) all
 
 .PHONY: all clean fclean re
