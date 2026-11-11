@@ -5,20 +5,20 @@
 # include <string>
 # include <functional>
 # include <optional>
+# include <memory>
+# include "Transport.hpp"
 
 using ClientHandler = std::function<std::optional<std::string>(const std::string&)>;
 
 class Server {
 	public:
-		Server(int port, ClientHandler handler);
-		~Server();
+		Server(std::unique_ptr<ITransport> transport, ClientHandler handler);
 		void	run(void);
 	private:
-		int							server_fd_;
-		int							client_fd_;
-		ClientHandler				handler_;
-		static const int			LISTEN_QUEUE_NUMBER = 10;
-		static const std::size_t	BUF_SIZE			= 10;
+		std::unique_ptr<ITransport>		transport_;
+		ClientHandler					handler_;
+		std::unique_ptr<IConnection>	client_;
+		static const std::size_t		BUF_SIZE = 10;
 };
 
 #endif
