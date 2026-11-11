@@ -19,7 +19,7 @@ class Server {
 		void	handle_client(void);
 		std::unique_ptr<ITransport>		transport_;
 		ClientHandler					handler_;
-		std::unique_ptr<IConnection>	client_;
+		std::unique_ptr<IByteStream>	client_;
 		ShouldStop						should_stop_;
 		static const std::size_t		BUF_SIZE = 10;
 };
