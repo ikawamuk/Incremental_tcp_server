@@ -29,7 +29,7 @@ ssize_t	TCPByteStream::write(const void* write_buf, size_t size) {
 TCPTransport::TCPTransport(int port)
 : server_fd_(-1)
 {
-	server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
+	server_fd_ = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (server_fd_ < 0)
 		throw std::system_error(errno, std::generic_category(), "socket");
 	struct sockaddr_in	serv_addr = {};
@@ -54,7 +54,7 @@ TCPTransport::~TCPTransport() {
 }
 
 std::unique_ptr<IByteStream>	TCPTransport::accept() {
-	int	client_fd = ::accept(server_fd_, nullptr, nullptr);
+	int	client_fd = ::accept4(server_fd_, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if (client_fd < 0)
 		throw std::system_error(errno, std::generic_category(), "accept");
 	return (std::make_unique<TCPByteStream>(client_fd));
