@@ -20,8 +20,8 @@ ssize_t	TCPConnection::read(void* read_buf, size_t size) {
 }
 
 ssize_t	TCPConnection::write(const void* write_buf, size_t size) {
-	ssize_t	wr_bytes = ::write(client_fd_, write_buf, size);
-	if (wr_bytes <= 0)
+	ssize_t	wr_bytes = ::send(client_fd_, write_buf, size, MSG_NOSIGNAL);
+	if (wr_bytes <= 0 && (size_t)wr_bytes != size)
 		throw std::system_error(errno, std::generic_category(), "write");
 	return (wr_bytes);
 }

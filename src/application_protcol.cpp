@@ -7,7 +7,7 @@
 namespace {
 	std::optional<std::string>	extract_line(std::string& buffer) {
 		std::string line;
-		std::size_t	newline_pos = buffer.find('\n');
+		std::size_t	newline_pos = buffer.find(';');
 		if (newline_pos == std::string::npos)
 			return (std::nullopt);
 		line = buffer.substr(0, newline_pos);
