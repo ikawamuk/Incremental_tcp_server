@@ -3,10 +3,10 @@
 
 # include "Transport.hpp"
 
-class TCPConnection: public IConnection {
+class TCPByteStream: public IByteStream {
 	public:
-		TCPConnection(int client_fd) noexcept;
-		~TCPConnection() override;
+		TCPByteStream(int client_fd) noexcept;
+		~TCPByteStream() override;
 		ssize_t	read(void* buf, size_t size) override;
 		ssize_t	write(const void* buf, size_t size) override;
 	private:
@@ -17,7 +17,7 @@ class TCPTransport: public ITransport {
 	public:
 		explicit TCPTransport(int port);
 		~TCPTransport() override;
-		std::unique_ptr<IConnection> accept() override;
+		std::unique_ptr<IByteStream> accept() override;
 	private:
 		int					server_fd_;
 		static const int	LISTEN_QUEUE_NUMBER = 10;

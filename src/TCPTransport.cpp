@@ -4,22 +4,22 @@
 #include <cerrno>
 #include <system_error>
 
-TCPConnection::TCPConnection(int client_fd) noexcept 
+TCPByteStream::TCPByteStream(int client_fd) noexcept 
 :client_fd_(client_fd) {}
 
-TCPConnection::~TCPConnection() {
+TCPByteStream::~TCPByteStream() {
 	if (client_fd_ >= 0)
 		close(client_fd_);
 }
 
-ssize_t	TCPConnection::read(void* read_buf, size_t size) {
-	ssize_t	rd_bytes = ::read(client_fd_, read_buf, size);
+ssize_t	TCPByteStream::read(void* read_buf, size_t size) {
+	ssize_t	rd_bytes = ::recv(client_fd_, read_buf, size, 0);
 		if (rd_bytes < 0)
 			throw std::system_error(errno, std::generic_category(), "read");
 		return (rd_bytes);
 }
 
-ssize_t	TCPConnection::write(const void* write_buf, size_t size) {
+ssize_t	TCPByteStream::write(const void* write_buf, size_t size) {
 	ssize_t	wr_bytes = ::send(client_fd_, write_buf, size, MSG_NOSIGNAL);
 	if (wr_bytes <= 0 && (size_t)wr_bytes != size)
 		throw std::system_error(errno, std::generic_category(), "write");
@@ -53,9 +53,9 @@ TCPTransport::~TCPTransport() {
 		close(server_fd_);
 }
 
-std::unique_ptr<IConnection>	TCPTransport::accept() {
+std::unique_ptr<IByteStream>	TCPTransport::accept() {
 	int	client_fd = ::accept(server_fd_, nullptr, nullptr);
 	if (client_fd < 0)
 		throw std::system_error(errno, std::generic_category(), "accept");
-	return (std::make_unique<TCPConnection>(client_fd));
+	return (std::make_unique<TCPByteStream>(client_fd));
 }
