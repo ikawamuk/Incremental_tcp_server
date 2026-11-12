@@ -14,13 +14,10 @@ Client::Client(std::unique_ptr<IByteStream> s, ClientHandler h)
 void	Client::handle_client(void) {
 	char	read_buf[BUF_SIZE];
 	ssize_t	rd_bytes = stream_->read(read_buf, sizeof(read_buf));
-	if (rd_bytes == -1) return ;
-	if (rd_bytes == 0) return ;
 	std::optional<std::string> responce = handler_(std::string(read_buf, rd_bytes));
-	if (!responce.has_value()) return ;
-	write_buf_ += responce.value();
+	if (responce.has_value())
+		write_buf_ += responce.value();
 	ssize_t	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
-	if (wr_bytes <= 0) return ;
 	write_buf_.erase(0, wr_bytes);
 }
 

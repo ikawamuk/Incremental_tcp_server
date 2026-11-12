@@ -16,7 +16,7 @@ ssize_t	TCPByteStream::read(void* read_buf, size_t size) {
 	ssize_t	rd_bytes = ::recv(client_fd_, read_buf, size, 0);
 		if (rd_bytes < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				return (-1);
+				return (0);
 			throw std::system_error(errno, std::generic_category(), "read");
 		}
 		return (rd_bytes);
