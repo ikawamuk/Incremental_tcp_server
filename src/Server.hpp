@@ -20,7 +20,7 @@ class Client {
 		std::unique_ptr<IByteStream>	stream_;
 		ClientHandler					handler_;
 		std::string						write_buf_;
-		static const std::size_t		BUF_SIZE = 10;
+		static const std::size_t		BUF_SIZE = 2;
 };
 
 class Server {
