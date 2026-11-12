@@ -14,15 +14,21 @@ TCPByteStream::~TCPByteStream() {
 
 ssize_t	TCPByteStream::read(void* read_buf, size_t size) {
 	ssize_t	rd_bytes = ::recv(client_fd_, read_buf, size, 0);
-		if (rd_bytes < 0)
+		if (rd_bytes < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				return (-1);
 			throw std::system_error(errno, std::generic_category(), "read");
+		}
 		return (rd_bytes);
 }
 
 ssize_t	TCPByteStream::write(const void* write_buf, size_t size) {
 	ssize_t	wr_bytes = ::send(client_fd_, write_buf, size, MSG_NOSIGNAL);
-	if (wr_bytes <= 0 && (size_t)wr_bytes != size)
+	if (wr_bytes <= 0 && (size_t)wr_bytes != size) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return (0);
 		throw std::system_error(errno, std::generic_category(), "write");
+	}
 	return (wr_bytes);
 }
 
@@ -55,7 +61,10 @@ TCPTransport::~TCPTransport() {
 
 std::unique_ptr<IByteStream>	TCPTransport::accept() {
 	int	client_fd = ::accept4(server_fd_, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
-	if (client_fd < 0)
+	if (client_fd < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return (nullptr);
 		throw std::system_error(errno, std::generic_category(), "accept");
+	}
 	return (std::make_unique<TCPByteStream>(client_fd));
 }

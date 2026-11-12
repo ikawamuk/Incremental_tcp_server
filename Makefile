@@ -1,6 +1,6 @@
 NAME	=	reactor
 CXX		=	c++
-CXXFLAG	=	-Wall -Wextra -Werror -I$(INCDIR) -std=c++20 -g -fsanitize=address,undefined
+CXXFLAG	=	-Wall -Wextra -Werror -I$(INCDIR) -g -std=c++20 -fsanitize=address,undefined
 
 SRCS	=	$(wildcard $(SRCDIR)/*.cpp)
 OBJS	=	$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
