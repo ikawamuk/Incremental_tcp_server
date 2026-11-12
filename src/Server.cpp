@@ -6,36 +6,37 @@
 #include <iostream>
 
 Server::Server(std::unique_ptr<ITransport> transport, ClientHandler handler, ShouldStop should_stop)
-:transport_(std::move(transport)), handler_(handler), client_(nullptr), should_stop_(should_stop) {}
+:transport_(std::move(transport)), clients_(), handler_(handler), should_stop_(should_stop) {}
 
-void	Server::handle_client(void) {
-	for (;;) {
-		char	read_buf[BUF_SIZE];
-		ssize_t	rd_bytes = client_->read(read_buf, sizeof(read_buf));
-		if (rd_bytes == -1) continue ;
-		if (rd_bytes == 0) break ;
-		std::string	received(read_buf, rd_bytes);
-		std::optional<std::string>	responce = handler_(received);
-		if (!responce.has_value()) continue ;
-		ssize_t	wr_bytes = 0;
-		for (size_t sent = 0; sent < responce->length(); sent += static_cast<size_t>(wr_bytes)) {
-			wr_bytes = client_->write(responce->data() + sent, responce->length() - sent);
-		}
-	}
+Client::Client(std::unique_ptr<IByteStream> s, ClientHandler h)
+:stream_(std::move(s)), handler_(h) {}
+
+void	Client::handle_client(void) {
+	char	read_buf[BUF_SIZE];
+	ssize_t	rd_bytes = stream_->read(read_buf, sizeof(read_buf));
+	if (rd_bytes == -1) return ;
+	if (rd_bytes == 0) return ;
+	std::optional<std::string> responce = handler_(std::string(read_buf, rd_bytes));
+	if (!responce.has_value()) return ;
+	write_buf_ += responce.value();
+	ssize_t	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
+	if (wr_bytes <= 0) return ;
+	write_buf_.erase(0, wr_bytes);
 }
 
 void	Server::run(void) {
 	while (!should_stop_()) {
 		try {
-			client_ = transport_->accept();
-			if (client_ == nullptr) continue ;
+			std::unique_ptr<IByteStream>	new_stream = transport_->accept();
+			if (new_stream != nullptr)
+				clients_.push_back(Client(std::move(new_stream), handler_));
 		} catch (const std::system_error& e) {
 			if (e.code() == std::errc::interrupted) continue ;
 			throw ;
 		}
 		try {
-			handle_client();
-			client_.reset();
+			for (std::vector<Client>::iterator it = clients_.begin(); it != clients_.end(); ++it)
+				it->handle_client();
 		} catch (std::system_error& e) {
 			std::cerr << "Client Error: " << e.what() << std::endl;
 		}
