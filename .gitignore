@@ -2,4 +2,5 @@
 !**/
 !src/**/*
 !Makefile
+!README.md
 !.gitignore
