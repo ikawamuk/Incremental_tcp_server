@@ -36,6 +36,22 @@ Server	make_tcp_mini_greeting_server(int port) {
 		.poller = 0}));
 }
 
+#include <charconv>
+#include <string_view>
+
+int parse_port(std::string_view input) {
+	int port = 0;
+	auto [end, ec] = std::from_chars(
+		input.data(), input.data() + input.size(), port);
+
+	if (ec != std::errc{} ||
+		end != input.data() + input.size() ||
+		port < 1 || port > 65535)
+		throw std::invalid_argument("Port must be an integer from 1 to 65535");
+
+	return port;
+}
+
 int	main(int argc, char *argv[]) {
 	if (argc < 2) {
 		std::cerr << "Usage: " << argv[0] << " <port number>" << std::endl;
@@ -43,7 +59,7 @@ int	main(int argc, char *argv[]) {
 	}
 	try {
 		set_signal_handler();
-		Server	server = make_tcp_mini_greeting_server(std::atoi(argv[1]));
+		Server	server = make_tcp_mini_greeting_server(parse_port(argv[1]));
 		server.run();
 	} catch (std::exception& e) {
 		std::cerr << "Error: " << e.what() << std::endl;
