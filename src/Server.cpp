@@ -15,13 +15,16 @@ void	Client::try_read(void) {
 	char	read_buf[BUF_SIZE];
 	ssize_t	rd_bytes = stream_->read(read_buf, sizeof(read_buf));
 	proceccing_buf_ += std::string(read_buf, rd_bytes);
-	std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
-	if (!process_result.has_value()) return ;
-	proceccing_buf_.erase(0, process_result.value().consumed);
-	write_buf_ += process_result.value().response;
+	for (;;) {
+		std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
+		if (!process_result.has_value()) return ;
+		proceccing_buf_.erase(0, process_result.value().consumed);
+		write_buf_ += process_result.value().response;
+	}
 }
 
 void	Client::try_write(void) {
+	if (write_buf_.empty()) return ;
 	ssize_t	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
 	write_buf_.erase(0, wr_bytes);
 }
