@@ -47,11 +47,10 @@ std::optional<ProcessResult>	mini_greeting_protcol(const std::string& read_buf) 
 	const std::string& command = tokens[0];
 	if (command == "HELLO") {
 		if (tokens.size() == 1)
-			return (ProcessResult("hello, Sir.\n", consumed));
-		return (ProcessResult("hello, Mr." + tokens[1] + "!\n", consumed));
+			return (ProcessResult{"hello, Sir.\n", consumed});
+		return (ProcessResult{"hello, Mr." + tokens[1] + "!\n", consumed});
 	}
 	if (command == "BYE")
-		return (ProcessResult("Good bye!\n", consumed));
-	return (ProcessResult("Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed));
+		return (ProcessResult{"Good bye!\n", consumed});
+	return (ProcessResult{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
 }
-
