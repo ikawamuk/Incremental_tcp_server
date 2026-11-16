@@ -7,8 +7,8 @@ class TCPByteStream: public IByteStream {
 	public:
 		TCPByteStream(int client_fd) noexcept;
 		~TCPByteStream() override;
-		ssize_t	read(void* buf, size_t size) override;
-		ssize_t	write(const void* buf, size_t size) override;
+		std::optional<size_t>	read(void* buf, size_t size) override;
+		std::optional<size_t>	write(const void* buf, size_t size) override;
 	private:
 		int	client_fd_;
 };

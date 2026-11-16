@@ -6,6 +6,7 @@
 # include <optional>
 
 struct ProcessResult {
+	ProcessResult(const std::string& r, std::size_t c): response(r), consumed(c) {}
 	std::string response;
 	std::size_t consumed;
 };

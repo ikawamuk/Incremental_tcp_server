@@ -13,8 +13,9 @@ Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
 
 void	Client::try_read(void) {
 	char	read_buf[BUF_SIZE];
-	ssize_t	rd_bytes = stream_->read(read_buf, sizeof(read_buf));
-	proceccing_buf_ += std::string(read_buf, rd_bytes);
+	std::optional<size_t> rd_bytes = stream_->read(read_buf, sizeof(read_buf));
+	if (!rd_bytes.has_value()) return ;
+	proceccing_buf_ += std::string(read_buf, rd_bytes.value());
 	for (;;) {
 		std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
 		if (!process_result.has_value()) return ;
@@ -25,8 +26,9 @@ void	Client::try_read(void) {
 
 void	Client::try_write(void) {
 	if (write_buf_.empty()) return ;
-	ssize_t	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
-	write_buf_.erase(0, wr_bytes);
+	std::optional<size_t>	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
+	if (!wr_bytes.has_value()) return ;
+	write_buf_.erase(0, wr_bytes.value());
 }
 
 void	Server::run(void) {

@@ -38,19 +38,20 @@ std::vector<std::string> split_tokens(const std::string& str) {
 	return (tokens);
 }
 
-std::optional<std::string>	mini_greeting_protcol(const std::string& read_buf) {
+std::optional<ProcessResult>	mini_greeting_protcol(const std::string& read_buf) {
 	std::optional<std::string>	line = extract_line(read_buf);
 	if (!line.has_value()) return (std::nullopt);
+	const std::size_t consumed = line->length() + 1;
 	std::vector<std::string> tokens = split_tokens(*line);
 	if (tokens.empty()) return (std::nullopt);
 	const std::string& command = tokens[0];
 	if (command == "HELLO") {
 		if (tokens.size() == 1)
-			return ("hello, Sir.\n");
-		return ("hello, Mr." + tokens[1] + "!\n");
+			return (ProcessResult("hello, Sir.\n", consumed));
+		return (ProcessResult("hello, Mr." + tokens[1] + "!\n", consumed));
 	}
 	if (command == "BYE")
-		return ("Good bye!\n");
-	return ("Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n");
+		return (ProcessResult("Good bye!\n", consumed));
+	return (ProcessResult("Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed));
 }
 
