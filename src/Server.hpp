@@ -15,7 +15,8 @@ using ShouldStop = std::function<bool(void)>;
 class Client {
 	public:
 		Client(std::unique_ptr<IByteStream> s, RequestProcessor h);
-		void	handle_client(void);
+		void	try_read();
+		void	try_write();
 	private:
 		std::unique_ptr<IByteStream>	stream_;
 		RequestProcessor				handler_;
@@ -32,7 +33,7 @@ class Server {
 		void	handle_client(Client& client);
 		std::unique_ptr<ITransport>	transport_;
 		std::vector<Client>			clients_;
-		RequestProcessor				handler_;
+		RequestProcessor			handler_;
 		ShouldStop					should_stop_;
 };
 
