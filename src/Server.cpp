@@ -5,19 +5,20 @@
 #include <stdexcept>
 #include <iostream>
 
-Server::Server(std::unique_ptr<ITransport> transport, ClientHandler handler, ShouldStop should_stop)
+Server::Server(std::unique_ptr<ITransport> transport, RequestProcessor handler, ShouldStop should_stop)
 :transport_(std::move(transport)), clients_(), handler_(handler), should_stop_(should_stop) {}
 
-Client::Client(std::unique_ptr<IByteStream> s, ClientHandler h)
+Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
 :stream_(std::move(s)), handler_(h) {}
 
 void	Client::handle_client(void) {
 	char	read_buf[BUF_SIZE];
 	ssize_t	rd_bytes = stream_->read(read_buf, sizeof(read_buf));
 	proceccing_buf_ += std::string(read_buf, rd_bytes);
-	std::optional<std::string>	responce = handler_(proceccing_buf_);
-	if (!responce.has_value()) return ;
-	write_buf_ += responce.value();
+	std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
+	if (!process_result.has_value()) return ;
+	proceccing_buf_.erase(0, process_result.value().consumed);
+	write_buf_ += process_result.value().response;
 	ssize_t	wr_bytes = stream_->write(write_buf_.data(), write_buf_.length());
 	write_buf_.erase(0, wr_bytes);
 }

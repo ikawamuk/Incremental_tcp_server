@@ -5,9 +5,10 @@
 #include <system_error>
 #include "Server.hpp"
 #include "TCPTransport.hpp"
+#include "RequestProcessor.hpp"
 
-std::optional<std::string>	echo_protcol(const std::string& read_data);
-std::optional<std::string>	mini_greeting_protcol(std::string& read_data);
+std::optional<std::string>		echo_protcol(const std::string& read_data);
+std::optional<ProcessResult>	mini_greeting_protcol(const std::string& read_data);
 
 volatile sig_atomic_t	recived_signal = 0;
 
@@ -27,7 +28,7 @@ void	set_signal_handler(void) {
 
 Server	make_tcp_mini_greeting_server(int port) {
 	std::unique_ptr<ITransport>	tcp = std::make_unique<TCPTransport>(port);
-	ClientHandler	handler = mini_greeting_protcol;
+	RequestProcessor	handler = mini_greeting_protcol;
 	return (Server(std::move(tcp), handler, 
 		[]() { return (recived_signal == SIGINT || recived_signal == SIGTERM); }));
 }
@@ -47,5 +48,3 @@ int	main(int argc, char *argv[]) {
 	}
 	return (0);
 }
-
-

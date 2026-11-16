@@ -8,17 +8,17 @@
 # include <memory>
 # include <vector>
 # include "Transport.hpp"
+# include "RequestProcessor.hpp"
 
-using ClientHandler = std::function<std::optional<std::string>(std::string&)>;
 using ShouldStop = std::function<bool(void)>;
 
 class Client {
 	public:
-		Client(std::unique_ptr<IByteStream> s, ClientHandler h);
+		Client(std::unique_ptr<IByteStream> s, RequestProcessor h);
 		void	handle_client(void);
 	private:
 		std::unique_ptr<IByteStream>	stream_;
-		ClientHandler					handler_;
+		RequestProcessor				handler_;
 		std::string						proceccing_buf_;
 		std::string						write_buf_;
 		static const std::size_t		BUF_SIZE = 2;
@@ -26,13 +26,13 @@ class Client {
 
 class Server {
 	public:
-		Server(std::unique_ptr<ITransport> transport, ClientHandler handler, ShouldStop should_stop);
+		Server(std::unique_ptr<ITransport> transport, RequestProcessor handler, ShouldStop should_stop);
 		void	run(void);
 	private:
 		void	handle_client(Client& client);
 		std::unique_ptr<ITransport>	transport_;
 		std::vector<Client>			clients_;
-		ClientHandler				handler_;
+		RequestProcessor				handler_;
 		ShouldStop					should_stop_;
 };
 

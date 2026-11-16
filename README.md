@@ -65,7 +65,7 @@ nc 127.0.0.1 8080
 | [src/TCPTransport.hpp](src/TCPTransport.hpp) / [src/TCPTransport.cpp](src/TCPTransport.cpp) | TCPソケットによる各インターフェースの実装と、ソケットの解放 |
 | [src/application_protcol.cpp](src/application_protcol.cpp) | 受信データの区切りの解析と、コマンドに応じた応答の生成 |
 
-アプリケーションの処理は `ClientHandler` としてサーバーに渡します。現在の起動処理では挨拶コマンドを扱う `mini_greeting_protcol` を使用しています。同じファイルにはエコー用の `echo_protcol` もあります。
+アプリケーションの処理は `RequestProcessor` としてサーバーに渡します。現在の起動処理では挨拶コマンドを扱う `mini_greeting_protcol` を使用しています。同じファイルにはエコー用の `echo_protcol` もあります。
 
 ## 実装の歩み
 

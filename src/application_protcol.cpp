@@ -3,15 +3,15 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include "RequestProcessor.hpp"
 
 namespace {
-	std::optional<std::string>	extract_line(std::string& buffer) {
+	std::optional<std::string>	extract_line(const std::string& buffer) {
 		std::string line;
 		std::size_t	newline_pos = buffer.find(';');
 		if (newline_pos == std::string::npos)
 			return (std::nullopt);
 		line = buffer.substr(0, newline_pos);
-		buffer.erase(0, newline_pos + 1);
 		return (line);
 	}
 }
@@ -38,7 +38,7 @@ std::vector<std::string> split_tokens(const std::string& str) {
 	return (tokens);
 }
 
-std::optional<std::string>	mini_greeting_protcol(std::string& read_buf) {
+std::optional<std::string>	mini_greeting_protcol(const std::string& read_buf) {
 	std::optional<std::string>	line = extract_line(read_buf);
 	if (!line.has_value()) return (std::nullopt);
 	std::vector<std::string> tokens = split_tokens(*line);
