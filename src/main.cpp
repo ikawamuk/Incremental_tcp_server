@@ -7,7 +7,7 @@
 #include "TCPTransport.hpp"
 
 std::optional<std::string>	echo_protcol(const std::string& read_data);
-std::optional<std::string>	mini_greeting_protcol(const std::string& read_data);
+std::optional<std::string>	mini_greeting_protcol(std::string& read_data);
 
 volatile sig_atomic_t	recived_signal = 0;
 

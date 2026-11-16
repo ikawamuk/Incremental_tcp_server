@@ -38,10 +38,8 @@ std::vector<std::string> split_tokens(const std::string& str) {
 	return (tokens);
 }
 
-std::optional<std::string>	mini_greeting_protcol(const std::string& read_data) {
-	static	std::string	request;
-	request += read_data;
-	std::optional<std::string>	line = extract_line(request);
+std::optional<std::string>	mini_greeting_protcol(std::string& read_buf) {
+	std::optional<std::string>	line = extract_line(read_buf);
 	if (!line.has_value()) return (std::nullopt);
 	std::vector<std::string> tokens = split_tokens(*line);
 	if (tokens.empty()) return (std::nullopt);

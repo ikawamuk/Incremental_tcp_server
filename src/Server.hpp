@@ -9,7 +9,7 @@
 # include <vector>
 # include "Transport.hpp"
 
-using ClientHandler = std::function<std::optional<std::string>(const std::string&)>;
+using ClientHandler = std::function<std::optional<std::string>(std::string&)>;
 using ShouldStop = std::function<bool(void)>;
 
 class Client {
@@ -19,6 +19,7 @@ class Client {
 	private:
 		std::unique_ptr<IByteStream>	stream_;
 		ClientHandler					handler_;
+		std::string						proceccing_buf_;
 		std::string						write_buf_;
 		static const std::size_t		BUF_SIZE = 2;
 };
