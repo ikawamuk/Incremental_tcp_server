@@ -27,6 +27,7 @@ class IPoller {
 		virtual ~IPoller() = default;
 		virtual void register_target(IPollable* target, int events) = 0;
 		virtual void unregister_target(IPollable* target) = 0;
+		virtual void modify_target(IPollable* target, int events) = 0;
 		virtual std::vector<Event>	poll(int timeout_ms) = 0;
 };
 

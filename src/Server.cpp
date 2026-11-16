@@ -42,8 +42,10 @@ bool	Client::is_finished(void) const {
 
 void	Server::accept_client(void) {
 	std::unique_ptr<IByteStream>	new_stream = transport_->accept();
-	if (new_stream != nullptr)
+	if (new_stream != nullptr) {
+		poller_->register_target(new_stream.get(), POLL_IN);
 		clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
+	}
 }
 
 void	Server::handle_event(Event& event) {
@@ -61,23 +63,38 @@ void	Server::handle_event(Event& event) {
 			client.try_write();
 		if (event.event_flag & POLL_ERROR)
 			;
+		handle_client_state(client);
 	} catch (std::system_error& e) {
 		if (e.code() == std::errc::interrupted) throw ;
 		std::cerr << "Client Error: " << e.what() << std::endl;
+		poller_->unregister_target(it->second.pollable());
+		clients_.erase(it);
+	}
+}
+
+void	Server::handle_client_state(Client& client) {
+	if (client.need_read() && client.need_write())
+		poller_->modify_target(client.pollable(), POLL_IN | POLL_OUT);
+	else if (!client.need_read() && client.need_write())
+		poller_->modify_target(client.pollable(), POLL_OUT);
+	else if (client.need_read() && !client.need_write())
+		poller_->modify_target(client.pollable(), POLL_IN);
+	else {
+		poller_->unregister_target(client.pollable());
+		clients_.erase(client.handle());
 	}
 }
 
 void	Server::run(void) {
 	while (!should_stop_()) {
 		try {
-			std::vector<Event>	events = poller_->poll(0);
+			std::vector<Event>	events = poller_->poll(1000);
 			for (std::vector<Event>::iterator ev = events.begin(); ev != events.end(); ++ev)
 				handle_event(*ev);
 		} catch (const std::system_error& e) {
 			if (e.code() == std::errc::interrupted) break ;
 			throw ;
 		}
-		std::erase_if(clients_, [](const std::pair<const Handle, Client>& pair) { return pair.second.is_finished(); });
 	}
-	std::cout << "\rServer terminetted" << std::endl;
+	std::cout << "\rServer terminated" << std::endl;
 }

@@ -29,6 +29,7 @@ class Client {
 	public:
 		Client(std::unique_ptr<IByteStream> s, RequestProcessor h);
 		Handle	handle(void) { return (stream_->handle()); }
+		IPollable*  pollable(void) { return (stream_.get()); }
 		void	try_read(void);
 		void	try_write(void);
 		bool	is_finished(void) const;
@@ -59,6 +60,7 @@ class Server {
 	private:
 		void	handle_event(Event& event);
 		void	accept_client(void);
+		void	handle_client_state(Client& client);
 		std::unique_ptr<ITransport>	transport_;
 		std::map<Handle, Client>	clients_;
 		RequestProcessor			handler_;
