@@ -84,16 +84,16 @@ void	Server::handle_event(Event& event) {
 			client.try_read();
 		if (event.event_flag & EVENT_WRITABLE && client.need_write())
 			client.try_write();
-		if (event.event_flag & EVENT_ERROR)
-			;
-		handle_client_state(client);
+		// if (event.event_flag & EVENT_ERROR) ;
 	} catch (std::system_error& e) {
 		if (e.code() == std::errc::interrupted) throw ;
 		std::cerr << "Client Error: " << e.what() << std::endl;
 		remove_client(it);
+		return ;
 	} catch (std::runtime_error &e) {
 		std::cerr << "Client Error: " << e.what() << std::endl;
 		remove_client(it);
+		return ;
 	}
 	handle_client_state(client);
 }
@@ -120,6 +120,7 @@ void	Server::run(void) {
 				handle_event(*ev);
 		} catch (const std::system_error& e) {
 			if (e.code() == std::errc::interrupted) continue ;
+			throw ;
 		}
 	}
 	std::cout << "\rServer terminated" << std::endl;

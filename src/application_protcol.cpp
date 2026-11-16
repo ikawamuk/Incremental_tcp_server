@@ -16,13 +16,13 @@ namespace {
 	}
 }
 
-std::optional<std::string>	echo_protcol(const std::string& read_data) {
-	static	std::string	request;
-	request += read_data;
-	std::optional<std::string>	line = extract_line(request);
-	if (!line.has_value()) return (std::nullopt);
-	return ("OK " + line.value() + "\n");
-}
+// std::optional<std::string>	echo_protcol(const std::string& read_data) {
+// 	static	std::string	request;
+// 	request += read_data;
+// 	std::optional<std::string>	line = extract_line(request);
+// 	if (!line.has_value()) return (std::nullopt);
+// 	return ("OK " + line.value() + "\n");
+// }
 
 /*
 	"HELLO" <name> -> "hello, Mr.<name>!"
@@ -44,7 +44,7 @@ ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
 	if (!line.has_value()) return (ParseNeedMore());
 	const std::size_t consumed = line->length() + 1;
 	std::vector<std::string> tokens = split_tokens(*line);
-	if (tokens.empty()) return (ParseNeedMore());
+	if (tokens.empty()) return (ParseSuccess{"", consumed});
 	const std::string& command = tokens[0];
 	if (command == "HELLO") {
 		if (tokens.size() == 1)
