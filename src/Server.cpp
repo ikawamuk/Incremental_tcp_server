@@ -3,11 +3,15 @@
 #include <stdexcept>
 #include <iostream>
 
-Server::Server(std::unique_ptr<IServerConfig> server_config)
-:transport_(std::move(server_config->transport)),
-clients_(), handler_(server_config->handler),
-should_stop_(server_config->should_stop),
-poller_(std::move(server_config->poller)) {}
+Server::Server(ServerConfig server_config)
+:transport_(std::move(server_config.transport)),
+clients_(), handler_(server_config.handler),
+should_stop_(server_config.should_stop),
+poller_(std::move(server_config.poller)) {
+	if (!transport_) throw std::invalid_argument("Transport is null");
+	if (!poller_) throw std::invalid_argument("Poller is null");
+	if (!should_stop_) throw std::invalid_argument("ShouldStop is empty");
+}
 
 Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
 :stream_(std::move(s)), handler_(h), read_closed_(false) {}
@@ -22,10 +26,17 @@ void	Client::try_read(void) {
 	}
 	proceccing_buf_ += std::string(read_buf, rd_bytes.value());
 	for (;;) {
-		std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
-		if (!process_result.has_value()) return ;
-		proceccing_buf_.erase(0, process_result.value().consumed);
-		write_buf_ += process_result.value().response;
+		ProcessResult	process_result = handler_.process(proceccing_buf_);
+		if (std::get_if<ParseNeedMore>(&process_result)) return ;
+		if (auto err = std::get_if<ParseError>(&process_result)) throw std::runtime_error(err->message);
+		if (auto success = std::get_if<ParseSuccess>(&process_result)) {
+			if (success->consumed == 0 || success->consumed > proceccing_buf_.size())
+				throw std::logic_error("Invalid consumed size");
+			proceccing_buf_.erase(0, success->consumed);
+			write_buf_ += success->response;
+			continue ;
+		}
+		std::logic_error("Unknown ParseResult");
 	}
 }
 
@@ -43,57 +54,72 @@ bool	Client::is_finished(void) const {
 void	Server::accept_client(void) {
 	std::unique_ptr<IByteStream>	new_stream = transport_->accept();
 	if (new_stream != nullptr) {
-		poller_->register_target(new_stream.get(), POLL_IN);
-		clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
+		auto [it, inserted] = clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
+		if (!inserted) throw std::logic_error("Duplicate handle");
+		try {
+			poller_->register_target(it->second.pollable(), EVENT_READABLE);
+		} catch (...) {
+			clients_.erase(it);
+			throw;
+		}
 	}
+}
+
+void	Server::remove_client(std::map<Handle, Client>::iterator it) {
+	poller_->unregister_target(it->second.pollable());
+	clients_.erase(it);
 }
 
 void	Server::handle_event(Event& event) {
 	if (event.handle == transport_->handle()) {
-		accept_client();
+		if (event.event_flag & EVENT_READABLE)
+			accept_client();
 		return ;
 	}
 	std::map<Handle, Client>::iterator it = clients_.find(event.handle);
 	if (it == clients_.end()) return ;
+	Client& client = it->second;
 	try {
-		Client& client = it->second;
-		if (event.event_flag & POLL_IN && client.need_read())
+		if (event.event_flag & EVENT_READABLE && client.need_read())
 			client.try_read();
-		if (event.event_flag & POLL_OUT && client.need_write())
+		if (event.event_flag & EVENT_WRITABLE && client.need_write())
 			client.try_write();
-		if (event.event_flag & POLL_ERROR)
+		if (event.event_flag & EVENT_ERROR)
 			;
 		handle_client_state(client);
 	} catch (std::system_error& e) {
 		if (e.code() == std::errc::interrupted) throw ;
 		std::cerr << "Client Error: " << e.what() << std::endl;
-		poller_->unregister_target(it->second.pollable());
-		clients_.erase(it);
+		remove_client(it);
+	} catch (std::runtime_error &e) {
+		std::cerr << "Client Error: " << e.what() << std::endl;
+		remove_client(it);
 	}
+	handle_client_state(client);
 }
 
 void	Server::handle_client_state(Client& client) {
-	if (client.need_read() && client.need_write())
-		poller_->modify_target(client.pollable(), POLL_IN | POLL_OUT);
-	else if (!client.need_read() && client.need_write())
-		poller_->modify_target(client.pollable(), POLL_OUT);
-	else if (client.need_read() && !client.need_write())
-		poller_->modify_target(client.pollable(), POLL_IN);
+	unsigned int interests = 0;
+	if (client.need_read())
+		interests |= EVENT_READABLE;
+	if (client.need_write())
+		interests |= EVENT_WRITABLE;
+	if (interests != 0)
+		poller_->modify_target(client.pollable(), interests);
 	else {
 		poller_->unregister_target(client.pollable());
 		clients_.erase(client.handle());
 	}
 }
-
 void	Server::run(void) {
+	poller_->register_target(transport_.get(), EVENT_READABLE);
 	while (!should_stop_()) {
 		try {
 			std::vector<Event>	events = poller_->poll(1000);
 			for (std::vector<Event>::iterator ev = events.begin(); ev != events.end(); ++ev)
 				handle_event(*ev);
 		} catch (const std::system_error& e) {
-			if (e.code() == std::errc::interrupted) break ;
-			throw ;
+			if (e.code() == std::errc::interrupted) continue ;
 		}
 	}
 	std::cout << "\rServer terminated" << std::endl;

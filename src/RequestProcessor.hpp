@@ -4,12 +4,37 @@
 # include <string>
 # include <functional>
 # include <optional>
+# include <variant>
 
-struct ProcessResult {
+struct ParseSuccess {
 	std::string response;
 	std::size_t consumed;
 };
 
-using RequestProcessor = std::function<std::optional<ProcessResult>(const std::string&)>;
+struct ParseNeedMore {};
+
+struct ParseError {
+	std::string	message;
+};
+
+using ProcessResult = std::variant<ParseSuccess, ParseNeedMore, ParseError>;
+
+using Parser = std::function<ProcessResult(const std::string&)>;
+
+class RequestProcessor {
+	public:
+		explicit RequestProcessor(Parser p):parser_(p) {}
+		ProcessResult	process(const std::string& input) { return (parser_(input)); }
+	private:
+		Parser	parser_;
+};
+
+template<class... Ts>
+struct Overloaded : Ts... {
+	using Ts::operator()...;
+};
+
+template<class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
 
 #endif

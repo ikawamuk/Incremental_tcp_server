@@ -12,9 +12,9 @@ class IPollable {
 };
 
 enum PollEvent {
-	POLL_IN = 1 << 0,
-	POLL_OUT = 1 << 1,
-	POLL_ERROR = 1 << 2
+	EVENT_READABLE = 1 << 0,
+	EVENT_WRITABLE = 1 << 1,
+	EVENT_ERROR = 1 << 2
 };
 
 struct Event {

@@ -38,19 +38,20 @@ std::vector<std::string> split_tokens(const std::string& str) {
 	return (tokens);
 }
 
-std::optional<ProcessResult>	mini_greeting_protcol(const std::string& read_buf) {
+ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
+	std::variant<ParseSuccess, ParseNeedMore, ParseError>	result;
 	std::optional<std::string>	line = extract_line(read_buf);
-	if (!line.has_value()) return (std::nullopt);
+	if (!line.has_value()) return (ParseNeedMore());
 	const std::size_t consumed = line->length() + 1;
 	std::vector<std::string> tokens = split_tokens(*line);
-	if (tokens.empty()) return (std::nullopt);
+	if (tokens.empty()) return (ParseNeedMore());
 	const std::string& command = tokens[0];
 	if (command == "HELLO") {
 		if (tokens.size() == 1)
-			return (ProcessResult{"hello, Sir.\n", consumed});
-		return (ProcessResult{"hello, Mr." + tokens[1] + "!\n", consumed});
+			return (ParseSuccess{"hello, Sir.\n", consumed});
+		return (ParseSuccess{"hello, Mr." + tokens[1] + "!\n", consumed});
 	}
 	if (command == "BYE")
-		return (ProcessResult{"Good bye!\n", consumed});
-	return (ProcessResult{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
+		return (ParseSuccess{"Good bye!\n", consumed});
+	return (ParseSuccess{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
 }

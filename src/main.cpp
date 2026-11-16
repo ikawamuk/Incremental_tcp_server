@@ -8,7 +8,7 @@
 #include "RequestProcessor.hpp"
 
 std::optional<std::string>		echo_protcol(const std::string& read_data);
-std::optional<ProcessResult>	mini_greeting_protcol(const std::string& read_data);
+ProcessResult					mini_greeting_protcol(const std::string& read_data);
 
 volatile sig_atomic_t	recived_signal = 0;
 
@@ -28,9 +28,12 @@ void	set_signal_handler(void) {
 
 Server	make_tcp_mini_greeting_server(int port) {
 	std::unique_ptr<ITransport>	tcp = std::make_unique<TCPTransport>(port);
-	RequestProcessor	handler = mini_greeting_protcol;
-	return (Server(std::move(tcp), handler, 
-		[]() { return (recived_signal == SIGINT || recived_signal == SIGTERM); }));
+	RequestProcessor	handler{Parser{mini_greeting_protcol}};
+	return (Server(ServerConfig{
+		.transport = std::move(tcp),
+		.handler = handler, 
+		.should_stop = []() { return (recived_signal == SIGINT || recived_signal == SIGTERM); },
+		.poller = 0}));
 }
 
 int	main(int argc, char *argv[]) {

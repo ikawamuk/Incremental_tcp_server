@@ -46,7 +46,7 @@ class Client {
 
 using ShouldStop = std::function<bool(void)>;
 
-struct IServerConfig {
+struct ServerConfig {
 	std::unique_ptr<ITransport>	transport;
 	RequestProcessor			handler;
 	ShouldStop					should_stop;
@@ -55,12 +55,13 @@ struct IServerConfig {
 
 class Server {
 	public:
-		explicit Server(std::unique_ptr<IServerConfig> server_config);
+		explicit Server(ServerConfig server_config);
 		void	run(void);
 	private:
 		void	handle_event(Event& event);
 		void	accept_client(void);
 		void	handle_client_state(Client& client);
+		void	remove_client(std::map<Handle, Client>::iterator it);
 		std::unique_ptr<ITransport>	transport_;
 		std::map<Handle, Client>	clients_;
 		RequestProcessor			handler_;
