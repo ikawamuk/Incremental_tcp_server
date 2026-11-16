@@ -6,25 +6,29 @@
 # include <functional>
 # include <optional>
 # include <memory>
-# include <vector>
+# include <map>
 # include "RequestProcessor.hpp"
+# include "Poller.hpp"
 
-class IByteStream {
+class IByteStream: public IPollable {
 	public:
 		virtual ~IByteStream() = default;
+		virtual Handle	handle(void) const noexcept = 0;
 		virtual std::optional<size_t> read(void* buf, size_t size) = 0;
 		virtual std::optional<size_t> write(const void* buf, size_t size) = 0;
 };
 
-class ITransport {
+class ITransport: public IPollable {
 	public:
 		virtual ~ITransport() = default;
+		virtual Handle	handle(void) const noexcept = 0;
 		virtual std::unique_ptr<IByteStream> accept() = 0;
 };
 
 class Client {
 	public:
 		Client(std::unique_ptr<IByteStream> s, RequestProcessor h);
+		Handle	handle(void) { return (stream_->handle()); }
 		void	try_read(void);
 		void	try_write(void);
 		bool	is_finished(void) const;
@@ -41,17 +45,25 @@ class Client {
 
 using ShouldStop = std::function<bool(void)>;
 
+struct IServerConfig {
+	std::unique_ptr<ITransport>	transport;
+	RequestProcessor			handler;
+	ShouldStop					should_stop;
+	std::unique_ptr<IPoller>	poller;
+};
+
 class Server {
 	public:
-		Server(std::unique_ptr<ITransport> transport, RequestProcessor handler, ShouldStop should_stop);
+		explicit Server(std::unique_ptr<IServerConfig> server_config);
 		void	run(void);
 	private:
+		void	handle_event(Event& event);
 		void	accept_client(void);
-		void	prcess_clients(void);
 		std::unique_ptr<ITransport>	transport_;
-		std::vector<Client>			clients_;
+		std::map<Handle, Client>	clients_;
 		RequestProcessor			handler_;
 		ShouldStop					should_stop_;
+		std::unique_ptr<IPoller>	poller_;
 };
 
 #endif

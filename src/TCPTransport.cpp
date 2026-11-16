@@ -12,6 +12,10 @@ TCPByteStream::~TCPByteStream() {
 		close(client_fd_);
 }
 
+Handle	TCPByteStream::handle(void) const noexcept {
+	return (client_fd_);
+}
+
 std::optional<size_t>	TCPByteStream::read(void* read_buf, size_t size) {
 	ssize_t	rd_bytes = ::recv(client_fd_, read_buf, size, 0);
 		if (rd_bytes < 0) {
@@ -57,6 +61,10 @@ TCPTransport::TCPTransport(int port)
 TCPTransport::~TCPTransport() {
 	if (server_fd_ >= 0)
 		close(server_fd_);
+}
+
+Handle	TCPTransport::handle(void) const noexcept {
+	return (server_fd_);
 }
 
 std::unique_ptr<IByteStream>	TCPTransport::accept() {

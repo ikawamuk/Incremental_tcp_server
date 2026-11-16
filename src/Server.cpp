@@ -1,12 +1,13 @@
 #include "Server.hpp"
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <optional>
 #include <stdexcept>
 #include <iostream>
 
-Server::Server(std::unique_ptr<ITransport> transport, RequestProcessor handler, ShouldStop should_stop)
-:transport_(std::move(transport)), clients_(), handler_(handler), should_stop_(should_stop) {}
+Server::Server(std::unique_ptr<IServerConfig> server_config)
+:transport_(std::move(server_config->transport)),
+clients_(), handler_(server_config->handler),
+should_stop_(server_config->should_stop),
+poller_(std::move(server_config->poller)) {}
 
 Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
 :stream_(std::move(s)), handler_(h), read_closed_(false) {}
@@ -42,35 +43,41 @@ bool	Client::is_finished(void) const {
 void	Server::accept_client(void) {
 	std::unique_ptr<IByteStream>	new_stream = transport_->accept();
 	if (new_stream != nullptr)
-		clients_.push_back(Client(std::move(new_stream), handler_));
+		clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
 }
 
-void	Server::prcess_clients(void) {
-	for (std::vector<Client>::iterator it = clients_.begin(); it != clients_.end(); ++it) {
-		try {
-			if (it->need_read()) it->try_read();
-			if (it->need_write()) it->try_write();
-		} catch (std::system_error& e) {
-			if (e.code() == std::errc::interrupted) {
-				if (should_stop_()) break;
-				continue ;
-			}
-			std::cerr << "Client Error: " << e.what() << std::endl;
-		}
+void	Server::handle_event(Event& event) {
+	if (event.handle == transport_->handle()) {
+		accept_client();
+		return ;
 	}
-	std::erase_if(clients_, [](const Client& client) { return client.is_finished(); });
+	std::map<Handle, Client>::iterator it = clients_.find(event.handle);
+	if (it == clients_.end()) return ;
+	try {
+		Client& client = it->second;
+		if (event.event_flag & POLL_IN && client.need_read())
+			client.try_read();
+		if (event.event_flag & POLL_OUT && client.need_write())
+			client.try_write();
+		if (event.event_flag & POLL_ERROR)
+			;
+	} catch (std::system_error& e) {
+		if (e.code() == std::errc::interrupted) throw ;
+		std::cerr << "Client Error: " << e.what() << std::endl;
+	}
 }
 
 void	Server::run(void) {
 	while (!should_stop_()) {
 		try {
-			accept_client();
-			// ここでpollingする
-			prcess_clients();
+			std::vector<Event>	events = poller_->poll(0);
+			for (std::vector<Event>::iterator ev = events.begin(); ev != events.end(); ++ev)
+				handle_event(*ev);
 		} catch (const std::system_error& e) {
 			if (e.code() == std::errc::interrupted) break ;
 			throw ;
 		}
+		std::erase_if(clients_, [](const std::pair<const Handle, Client>& pair) { return pair.second.is_finished(); });
 	}
 	std::cout << "\rServer terminetted" << std::endl;
 }
