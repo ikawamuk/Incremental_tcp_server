@@ -9,12 +9,16 @@ Server::Server(std::unique_ptr<ITransport> transport, RequestProcessor handler, 
 :transport_(std::move(transport)), clients_(), handler_(handler), should_stop_(should_stop) {}
 
 Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
-:stream_(std::move(s)), handler_(h) {}
+:stream_(std::move(s)), handler_(h), read_closed_(false) {}
 
 void	Client::try_read(void) {
 	char	read_buf[BUF_SIZE];
 	std::optional<size_t> rd_bytes = stream_->read(read_buf, sizeof(read_buf));
 	if (!rd_bytes.has_value()) return ;
+	if (rd_bytes.value() == 0) {
+		read_closed_ = true;
+		return ;
+	}
 	proceccing_buf_ += std::string(read_buf, rd_bytes.value());
 	for (;;) {
 		std::optional<ProcessResult>	process_result = handler_(proceccing_buf_);
@@ -31,6 +35,10 @@ void	Client::try_write(void) {
 	write_buf_.erase(0, wr_bytes.value());
 }
 
+bool	Client::is_finished(void) const {
+	return (read_closed_ /* && write_buf_.empty() // 未完成のデータをアプリケーションプロトコル側がエラー判定してくれるならこの条件ONでもいい*/);
+}
+
 void	Server::run(void) {
 	while (!should_stop_()) {
 		try {
@@ -41,15 +49,16 @@ void	Server::run(void) {
 			if (e.code() == std::errc::interrupted) continue ;
 			throw ;
 		}
-		try {
-			// ここでpollingする
-			for (std::vector<Client>::iterator it = clients_.begin(); it != clients_.end(); ++it) {
+		// ここでpollingする
+		for (std::vector<Client>::iterator it = clients_.begin(); it != clients_.end(); ++it) {
+			try {
 				it->try_read();
 				it->try_write();
+			} catch (std::system_error& e) {
+				std::cerr << "Client Error: " << e.what() << std::endl;
 			}
-		} catch (std::system_error& e) {
-			std::cerr << "Client Error: " << e.what() << std::endl;
 		}
+		std::erase_if(clients_, [](const Client& client) { return client.is_finished(); });
 	}
 	std::cout << "\rServer terminetted" << std::endl;
 }

@@ -15,11 +15,13 @@ using ShouldStop = std::function<bool(void)>;
 class Client {
 	public:
 		Client(std::unique_ptr<IByteStream> s, RequestProcessor h);
-		void	try_read();
-		void	try_write();
+		void	try_read(void);
+		void	try_write(void);
+		bool	is_finished(void) const;
 	private:
 		std::unique_ptr<IByteStream>	stream_;
 		RequestProcessor				handler_;
+		bool							read_closed_;
 		std::string						proceccing_buf_;
 		std::string						write_buf_;
 		static const std::size_t		BUF_SIZE = 2;
