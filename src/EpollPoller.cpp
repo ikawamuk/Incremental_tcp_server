@@ -1,17 +1,41 @@
 #include "EpollPoller.hpp"
 #include <sys/epoll.h>
 #include <system_error>
+#include <array>
 
 namespace {
-	int	get_epoll_event_flag(int poll_event_flag) {
-		
+	struct EventMapping {
+		uint32_t domain;
+		uint32_t epoll_flag;
+	};
+	constexpr std::array<EventMapping, 4> kEventMap = {{
+		{IPoller::EVENT_READABLE, EPOLLIN},
+		{IPoller::EVENT_WRITABLE, EPOLLOUT},
+		{IPoller::EVENT_ERROR,    EPOLLERR},
+		{IPoller::EVENT_ERROR,    EPOLLHUP},
+	}};
+
+	uint32_t to_epoll_events(int events) noexcept {
+		uint32_t raw = static_cast<uint32_t>(events);
+		uint32_t mask = 0;
+		for (const auto& m : kEventMap) {
+			if ((raw & static_cast<uint32_t>(m.domain)) != 0) {
+				mask |= m.epoll_flag;
+			}
+		}
+		return mask;
 	}
 
-	int	get_poller_event_flag(int epoll_event_flag) {
-		
+	uint32_t from_epoll_events(uint32_t revents) noexcept {
+		uint32_t out = 0;
+		for (const auto& m : kEventMap) {
+			if ((revents & m.epoll_flag) != 0) {
+				out |= static_cast<uint32_t>(m.domain);
+			}
+		}
+		return (out);
 	}
 }
-
 
 EpollPoller::EpollPoller(void)
 {
@@ -22,7 +46,7 @@ EpollPoller::EpollPoller(void)
 void EpollPoller::register_target(IPollable* target, int events)
 {
 	struct epoll_event	ev;
-	ev.events = get_epoll_event_flag(events);
+	ev.events = to_epoll_events(events);
 	ev.data.fd = target->handle();
 	if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, target->handle(), &ev) < 0)
 		throw std::system_error(errno, std::generic_category(), "epoll_ctl");
@@ -37,7 +61,7 @@ void EpollPoller::unregister_target(IPollable* target)
 void EpollPoller::modify_target(IPollable* target, int events)
 {
 	struct epoll_event	ev;
-	ev.events = get_epoll_event_flag(events);
+	ev.events = to_epoll_events(events);
 	ev.data.fd = target->handle();
 	if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, target->handle(), &ev) < 0)
 		throw std::system_error(errno, std::generic_category(), "epoll_ctl");
@@ -55,6 +79,6 @@ std::vector<Event>	EpollPoller::poll(int timeout_ms)
 		throw std::system_error(errno, std::generic_category(), "epoll_wait");
 	}
 	for (int i = 0; i < nfds; ++i)
-		poll_result.push_back(Event(events[i].data.fd, get_poller_event_flag(events[i].events)));
+		poll_result.push_back(Event{events[i].data.fd, from_epoll_events(events[i].events)});
 	return (poll_result);
 }

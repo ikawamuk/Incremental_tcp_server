@@ -6,6 +6,7 @@
 #include "Server.hpp"
 #include "TCPTransport.hpp"
 #include "RequestProcessor.hpp"
+#include "EpollPoller.hpp"
 
 std::optional<std::string>		echo_protcol(const std::string& read_data);
 ProcessResult					mini_greeting_protcol(const std::string& read_data);
@@ -33,7 +34,7 @@ Server	make_tcp_mini_greeting_server(int port) {
 		.transport = std::move(tcp),
 		.handler = handler, 
 		.should_stop = []() { return (recived_signal == SIGINT || recived_signal == SIGTERM); },
-		.poller = 0}));
+		.poller = std::make_unique<EpollPoller>()}));
 }
 
 #include <charconv>

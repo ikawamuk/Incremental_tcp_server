@@ -57,7 +57,7 @@ void	Server::accept_client(void) {
 		auto [it, inserted] = clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
 		if (!inserted) throw std::logic_error("Duplicate handle");
 		try {
-			poller_->register_target(it->second.pollable(), EVENT_READABLE);
+			poller_->register_target(it->second.pollable(), IPoller::EVENT_READABLE);
 		} catch (...) {
 			clients_.erase(it);
 			throw;
@@ -72,7 +72,7 @@ void	Server::remove_client(std::map<Handle, Client>::iterator it) {
 
 void	Server::handle_event(Event& event) {
 	if (event.handle == transport_->handle()) {
-		if (event.event_flag & EVENT_READABLE)
+		if (event.event_flag & IPoller::EVENT_READABLE)
 			accept_client();
 		return ;
 	}
@@ -80,11 +80,11 @@ void	Server::handle_event(Event& event) {
 	if (it == clients_.end()) return ;
 	Client& client = it->second;
 	try {
-		if (event.event_flag & EVENT_READABLE && client.need_read())
+		if (event.event_flag & IPoller::EVENT_READABLE && client.need_read())
 			client.try_read();
-		if (event.event_flag & EVENT_WRITABLE && client.need_write())
+		if (event.event_flag & IPoller::EVENT_WRITABLE && client.need_write())
 			client.try_write();
-		// if (event.event_flag & EVENT_ERROR) ;
+		// if (event.event_flag & IPoller::EVENT_ERROR) ;
 	} catch (std::system_error& e) {
 		if (e.code() == std::errc::interrupted) throw ;
 		std::cerr << "Client Error: " << e.what() << std::endl;
@@ -101,9 +101,9 @@ void	Server::handle_event(Event& event) {
 void	Server::handle_client_state(Client& client) {
 	unsigned int interests = 0;
 	if (client.need_read())
-		interests |= EVENT_READABLE;
+		interests |= IPoller::EVENT_READABLE;
 	if (client.need_write())
-		interests |= EVENT_WRITABLE;
+		interests |= IPoller::EVENT_WRITABLE;
 	if (interests != 0)
 		poller_->modify_target(client.pollable(), interests);
 	else {
@@ -112,7 +112,7 @@ void	Server::handle_client_state(Client& client) {
 	}
 }
 void	Server::run(void) {
-	poller_->register_target(transport_.get(), EVENT_READABLE);
+	poller_->register_target(transport_.get(), IPoller::EVENT_READABLE);
 	while (!should_stop_()) {
 		try {
 			std::vector<Event>	events = poller_->poll(1000);
