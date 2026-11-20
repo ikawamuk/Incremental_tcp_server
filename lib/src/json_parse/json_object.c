@@ -6,7 +6,7 @@
 /*   By: ikawamuk <ikawamuk@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 02:01:53 by ikawamuk          #+#    #+#             */
-/*   Updated: 2026/09/03 09:14:36 by ikawamuk         ###   ########.fr       */
+/*   Updated: 2026/11/21 05:48:37 by ikawamuk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ t_json_object	*rj_object_new_member(void)
 	member = malloc(sizeof(t_json_object));
 	if (!member)
 		return (NULL);
-	memset(member, 0, sizeof(t_json));
+	memset(member, 0, sizeof(t_json_object));
 	member->value = rj_new_item();
 	if (!member->value)
 	{

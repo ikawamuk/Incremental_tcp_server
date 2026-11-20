@@ -1,22 +1,28 @@
-NAME	=	reactor
-CXX		=	c++
-CXXFLAG	=	-Wall -Wextra -Werror -I$(INCDIR) -g -std=c++20 -fsanitize=address,undefined
+NAME		=	reactor
+CXX			=	c++
+CXXFLAG		=	-Wall -Wextra -Werror -I$(INCDIR) -I$(LIBINCDIR) -g -std=c++20 -fsanitize=address,undefined
+LDLIBS		= -Llib -lrosetta_json
 
-SRCS	=	$(wildcard $(SRCDIR)/*.cpp)
-OBJS	=	$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
+SRCS		=	$(wildcard $(SRCDIR)/*.cpp)
+OBJS		=	$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
-SRCDIR	=	src
-OBJDIR	=	obj
-INCDIR	=	include
+SRCDIR		=	src
+OBJDIR		=	obj
+INCDIR		=	include
+LIBINCDIR	=	lib/include
+LIB			=	lib/build/librosetta_json.a
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAG) $^ -o $@
+$(NAME): $(OBJS) $(LIB)
+	$(CXX) $(CXXFLAG) $^ $(LDFLAGS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAG) -c $< -o $@
+
+$(LIB):
+	$(MAKE) -C lib
 
 clean:
 	rm -rf $(OBJDIR)

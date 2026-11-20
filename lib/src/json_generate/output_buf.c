@@ -6,7 +6,7 @@
 /*   By: ikawamuk <ikawamuk@student.42tokyo.jp>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/30 02:34:44 by ikawamuk          #+#    #+#             */
-/*   Updated: 2026/09/03 09:48:50 by ikawamuk         ###   ########.fr       */
+/*   Updated: 2026/11/21 05:48:08 by ikawamuk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ int	rj_output_buf_init(t_output_buf *self, bool is_formatted)
 {
 	static const size_t	default_buffer_size = 256;
 
-	self->content = malloc(sizeof(char) * default_buffer_size);
+	self->content = malloc(sizeof(unsigned char) * default_buffer_size);
 	self->size = default_buffer_size;
 	self->offset = 0;
 	self->size = 0;

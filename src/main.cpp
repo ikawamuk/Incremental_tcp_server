@@ -8,9 +8,9 @@
 #include "RequestProcessor.hpp"
 #include "EpollPoller.hpp"
 
-std::optional<std::string>		echo_protcol(const std::string& read_data);
-ProcessResult					mini_greeting_protcol(const std::string& read_data);
-
+std::optional<std::string>	echo_protcol(const std::string& read_data);
+ProcessResult				mini_greeting_protcol(const std::string& read_data);
+ProcessResult				mini_json_rpc(const std::string& input);
 volatile sig_atomic_t	recived_signal = 0;
 
 void	signal_handler(int sig) {
@@ -30,6 +30,16 @@ void	set_signal_handler(void) {
 Server	make_tcp_mini_greeting_server(int port) {
 	std::unique_ptr<ITransport>	tcp = std::make_unique<TCPTransport>(port);
 	RequestProcessor	handler{Parser{mini_greeting_protcol}};
+	return (Server(ServerConfig{
+		.transport = std::move(tcp),
+		.handler = handler, 
+		.should_stop = []() { return (recived_signal == SIGINT || recived_signal == SIGTERM); },
+		.poller = std::make_unique<EpollPoller>()}));
+}
+
+Server	make_tcp_mini_json_rpc_server(int port) {
+	std::unique_ptr<ITransport>	tcp = std::make_unique<TCPTransport>(port);
+	RequestProcessor	handler{Parser{mini_json_rpc}};
 	return (Server(ServerConfig{
 		.transport = std::move(tcp),
 		.handler = handler, 
@@ -60,7 +70,7 @@ int	main(int argc, char *argv[]) {
 	}
 	try {
 		set_signal_handler();
-		Server	server = make_tcp_mini_greeting_server(parse_port(argv[1]));
+		Server	server = make_tcp_mini_json_rpc_server(parse_port(argv[1]));
 		server.run();
 	} catch (std::exception& e) {
 		std::cerr << "Error: " << e.what() << std::endl;
