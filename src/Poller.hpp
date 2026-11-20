@@ -5,12 +5,6 @@
 
 using Handle = int;
 
-class IPollable {
-	public:
-		virtual ~IPollable() = default;
-		virtual Handle	handle(void) const noexcept = 0;
-};
-
 enum PollEvent {
 	EVENT_READABLE = 1 << 0,
 	EVENT_WRITABLE = 1 << 1,
@@ -20,6 +14,12 @@ enum PollEvent {
 struct Event {
 	Handle	handle;
 	int		event_flag;
+};
+
+class IPollable {
+	public:
+		virtual ~IPollable() = default;
+		virtual Handle	handle(void) const noexcept = 0;
 };
 
 class IPoller {

@@ -29,12 +29,4 @@ class RequestProcessor {
 		Parser	parser_;
 };
 
-template<class... Ts>
-struct Overloaded : Ts... {
-	using Ts::operator()...;
-};
-
-template<class... Ts>
-Overloaded(Ts...) -> Overloaded<Ts...>;
-
 #endif

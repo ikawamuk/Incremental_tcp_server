@@ -67,7 +67,7 @@ Handle	TCPTransport::handle(void) const noexcept {
 	return (server_fd_);
 }
 
-std::unique_ptr<IByteStream>	TCPTransport::accept() {
+std::unique_ptr<IByteStream>	TCPTransport::accept(void) {
 	int	client_fd = ::accept4(server_fd_, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if (client_fd < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
