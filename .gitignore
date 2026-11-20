@@ -5,3 +5,7 @@
 !README.md
 !.gitignore
 !doc/*.md
+!lib/**/*.c
+!lib/**/*.h
+!lib/README.md
+!lib/Makefile

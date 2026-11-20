@@ -55,3 +55,7 @@ ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
 		return (ParseSuccess{"Good bye!\n", consumed});
 	return (ParseSuccess{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
 }
+
+ProcessResult	json_rpc(const std::string& input) {
+	
+}
