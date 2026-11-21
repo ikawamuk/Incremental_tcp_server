@@ -39,25 +39,25 @@ std::vector<std::string> split_tokens(const std::string& str) {
 }
 
 ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
-	std::variant<ParseSuccess, ParseNeedMore, ParseError>	result;
+	std::variant<Processed, NeedMore, Discard>	result;
 	std::optional<std::string>	line = extract_line(read_buf);
-	if (!line.has_value()) return (ParseNeedMore());
+	if (!line.has_value()) return (NeedMore());
 	const std::size_t consumed = line->length() + 1;
 	std::vector<std::string> tokens = split_tokens(*line);
-	if (tokens.empty()) return (ParseSuccess{"", consumed});
+	if (tokens.empty()) return (Processed{"", consumed});
 	const std::string& command = tokens[0];
 	if (command == "HELLO") {
 		if (tokens.size() == 1)
-			return (ParseSuccess{"hello, Sir.\n", consumed});
-		return (ParseSuccess{"hello, Mr." + tokens[1] + "!\n", consumed});
+			return (Processed{"hello, Sir.\n", consumed});
+		return (Processed{"hello, Mr." + tokens[1] + "!\n", consumed});
 	}
 	if (command == "BYE")
-		return (ParseSuccess{"Good bye!\n", consumed});
-	return (ParseSuccess{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
+		return (Processed{"Good bye!\n", consumed});
+	return (Processed{"Unknown command\nsupporting command\n\t- \"HELLO <name>\"\n\t- \"BYE\"\n", consumed});
 }
 
 #include "JSON.hpp"
-
+#include <limits>
 namespace {
 	int	call_function(const std::string& function_name, int params[2]) {
 		if (function_name == "add")
@@ -66,41 +66,49 @@ namespace {
 			return (params[0] - params[1]);
 		if (function_name == "mul")
 			return (params[0] * params[1]);
-		if (function_name == "mul" && params[1] != 0)
+		if (function_name == "div") {
+			if (params[1] == 0)
+				throw std::runtime_error("Division by zero");
+			if (params[0] == std::numeric_limits<int>::min() && params[1] == -1)
+				throw std::overflow_error("Integer overflow");
 			return (params[0] / params[1]);
-		return (0);
+		}
+		throw (std::runtime_error("Unknown method"));
 	}
 }
 
 ProcessResult	mini_json_rpc(const std::string& input) {
-	if (input.empty()) return (ParseNeedMore{});
+	if (input.empty()) return (NeedMore{});
 	if (input.front() != '\x1E') {
 		auto next = input.find('\x1E');
-		return ParseError{"Invalid frame",
-			next == std::string::npos ? input.size() : next};
+		return Discard{next == std::string::npos ? input.size() : next};
 	}
 	auto end = input.find('\x0A', 1);
-	if (end == std::string::npos) return ParseNeedMore{};
+	if (end == std::string::npos) return NeedMore{};
 	const std::size_t consumed = end + 1;
 	std::string json_text = input.substr(1, end - 1);
 	JSONDoc	json_doc(json_text);
-	if (!json_doc) return (ParseError{"Parse error", consumed});
-	if (!json_is_object(json_doc.get())) return (ParseError{"Invalid Request: request must be object", consumed});
+	if (!json_doc) return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
+	if (!json_is_object(json_doc.get())) return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
 	t_json	*method = json_get_object_item(json_doc.get(), "method");
 	t_json	*params = json_get_object_item(json_doc.get(), "params");
 	if (!method || !params || !json_is_string(method) || !json_is_array(params))
-		return (ParseError{"Invalid Request: method and params must be specified", consumed});
+		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
 	const char	*function_name = json_get_string(method);
 	if (json_get_array_size(params) != 2)
-		return (ParseError{"Invalid Request: number of params must be two", consumed});
+		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
 	t_json	*val1, *val2;
 	val1 = json_get_array_element(params, 0);
 	val2 = json_get_array_element(params, 1);
 	if (!json_is_number(val1) || !json_is_number(val2))
-		return (ParseError{"Invalid Request: params must be number", consumed});
+		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
 	int	arg_values[2];
 	arg_values[0] = json_get_number(val1);
 	arg_values[1] = json_get_number(val2);
-	int	result_value = call_function(function_name, arg_values);
-	return (ParseSuccess{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
+	try {
+		int	result_value = call_function(function_name, arg_values);
+		return (Processed{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
+	} catch (const std::exception& e) {
+		return (Processed{"{\"error\":" + std::string(e.what()) + "}\n", consumed});
+	}
 }

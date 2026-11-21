@@ -6,19 +6,18 @@
 # include <optional>
 # include <variant>
 
-struct ParseSuccess {
+struct Processed {
 	std::string response;
 	std::size_t consumed;
 };
 
-struct ParseNeedMore {};
+struct NeedMore {};
 
-struct ParseError {
-	std::string	message;
+struct Discard {
 	std::size_t consumed;
 };
 
-using ProcessResult = std::variant<ParseSuccess, ParseNeedMore, ParseError>;
+using ProcessResult = std::variant<Processed, NeedMore, Discard>;
 
 using Parser = std::function<ProcessResult(const std::string&)>;
 

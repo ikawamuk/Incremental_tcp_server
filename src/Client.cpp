@@ -14,12 +14,12 @@ void	Client::try_read(void) {
 	proceccing_buf_ += std::string(read_buf, rd_bytes.value());
 	for (;;) {
 		ProcessResult	process_result = handler_.process(proceccing_buf_);
-		if (std::get_if<ParseNeedMore>(&process_result)) return ;
-		if (auto err = std::get_if<ParseError>(&process_result)) {
+		if (std::get_if<NeedMore>(&process_result)) return ;
+		if (auto err = std::get_if<Discard>(&process_result)) {
 			proceccing_buf_.erase(0, err->consumed);
-			throw std::runtime_error(err->message);
+			continue ;
 		}
-		if (auto success = std::get_if<ParseSuccess>(&process_result)) {
+		if (auto success = std::get_if<Processed>(&process_result)) {
 			if (success->consumed == 0 || success->consumed > proceccing_buf_.size())
 				throw std::logic_error("Invalid consumed size");
 			proceccing_buf_.erase(0, success->consumed);
