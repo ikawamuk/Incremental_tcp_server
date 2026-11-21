@@ -2,6 +2,7 @@
 #include <sys/epoll.h>
 #include <system_error>
 #include <array>
+#include <unistd.h>
 
 namespace {
 	struct EventMapping {
@@ -41,6 +42,10 @@ EpollPoller::EpollPoller(void)
 {
 	epoll_fd_ = epoll_create1(EPOLL_CLOEXEC);
 	if (epoll_fd_ < 0) throw std::system_error(errno, std::generic_category(), "epoll_create1");
+}
+
+EpollPoller::~EpollPoller() {
+	::close(epoll_fd_);
 }
 
 void EpollPoller::register_target(IPollable* target, int events)

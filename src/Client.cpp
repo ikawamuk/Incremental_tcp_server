@@ -35,8 +35,10 @@ void	Client::process_buffered_requests(void) {
 	for (;;) {
 		ProcessResult	process_result = handler_.process(proceccing_buf_);
 		if (std::get_if<NeedMore>(&process_result)) return ;
-		if (auto err = std::get_if<Discard>(&process_result)) {
-			proceccing_buf_.erase(0, err->consumed);
+		if (auto discard = std::get_if<Discard>(&process_result)) {
+			if (discard->consumed == 0 || discard->consumed > proceccing_buf_.size())
+				throw std::logic_error("Invalid consumed size");
+			proceccing_buf_.erase(0, discard->consumed);
 			continue ;
 		}
 		if (auto success = std::get_if<Processed>(&process_result)) {

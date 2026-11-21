@@ -57,10 +57,15 @@ ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
 }
 
 #include "JSON.hpp"
-#include <limits>
 #include <cmath>
 
 namespace {
+	std::string	frame_rpc_response(std::string json) {
+		json.insert(json.begin(), '\x1E');
+		json.push_back('\n');
+		return (json);
+	}
+
 	int	call_function(const std::string& function_name, double params[2]) {
 		if (function_name == "add")
 			return (params[0] + params[1]);
@@ -71,11 +76,45 @@ namespace {
 		if (function_name == "div") {
 			if (params[1] == 0)
 				throw std::runtime_error("Division by zero");
-			if (params[0] == std::numeric_limits<int>::min() && params[1] == -1)
-				throw std::overflow_error("Integer overflow");
 			return (params[0] / params[1]);
 		}
 		throw (std::runtime_error("Unknown method"));
+	}
+
+	std::string	execute_rpc(const char* function_name, double arg_values[2]) {
+		if (!std::isfinite(arg_values[1]) || !std::isfinite(arg_values[1]))
+			throw std::invalid_argument("Parameters must be finite");
+		try {
+			double	result_value = call_function(function_name, arg_values);
+			if (!std::isfinite(result_value))
+				throw std::overflow_error("Floating-point overflow");
+			return ("{\"result\":" + std::to_string(result_value) + "}");
+		} catch (const std::exception& e) {
+			return ("{\"error\":\"" + std::string(e.what()) + "\"}");
+		}
+	}
+
+	std::string	process_rpc_json(const std::string& json_text) {
+		constexpr const char* invalid_request = "{\"error\":\"Invalid Request\"}";
+		JSONDoc	json_doc(json_text);
+		if (!json_doc) return (invalid_request);
+		if (!json_is_object(json_doc.get())) return (invalid_request);
+		t_json	*method = json_get_object_item(json_doc.get(), "method");
+		t_json	*params = json_get_object_item(json_doc.get(), "params");
+		if (!method || !params || !json_is_string(method) || !json_is_array(params))
+			return (invalid_request);
+		const char	*function_name = json_get_string(method);
+		if (json_get_array_size(params) != 2)
+			return (invalid_request);
+		t_json	*val1, *val2;
+		val1 = json_get_array_element(params, 0);
+		val2 = json_get_array_element(params, 1);
+		if (!json_is_number(val1) || !json_is_number(val2))
+			return (invalid_request);
+		double	arg_values[2];
+		arg_values[0] = json_get_number(val1);
+		arg_values[1] = json_get_number(val2);
+		return (execute_rpc(function_name, arg_values));
 	}
 }
 
@@ -94,33 +133,5 @@ ProcessResult	mini_json_rpc(const std::string& input) {
 	}
 	const std::size_t consumed = end + 1;
 	if (consumed > MAX_FRAME_SIZE) throw std::runtime_error("Request frame too large");
-	std::string json_text = input.substr(1, end - 1);
-	JSONDoc	json_doc(json_text);
-	if (!json_doc) return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	if (!json_is_object(json_doc.get())) return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	t_json	*method = json_get_object_item(json_doc.get(), "method");
-	t_json	*params = json_get_object_item(json_doc.get(), "params");
-	if (!method || !params || !json_is_string(method) || !json_is_array(params))
-		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	const char	*function_name = json_get_string(method);
-	if (json_get_array_size(params) != 2)
-		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	t_json	*val1, *val2;
-	val1 = json_get_array_element(params, 0);
-	val2 = json_get_array_element(params, 1);
-	if (!json_is_number(val1) || !json_is_number(val2))
-		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	double	arg_values[2];
-	arg_values[0] = json_get_number(val1);
-	arg_values[1] = json_get_number(val2);
-	if (!std::isfinite(arg_values[1]) || !std::isfinite(arg_values[1]))
-		throw std::invalid_argument("Parameters must be finite");
-	try {
-		double	result_value = call_function(function_name, arg_values);
-		if (!std::isfinite(result_value))
-			throw std::overflow_error("Floating-point overflow");
-		return (Processed{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
-	} catch (const std::exception& e) {
-		return (Processed{"{\"error\":\"" + std::string(e.what()) + "\"}\n", consumed});
-	}
+	return (Processed{frame_rpc_response(process_rpc_json(input.substr(1, end - 1))), consumed});
 }

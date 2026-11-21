@@ -7,10 +7,13 @@
 class EpollPoller: public IPoller {
 	public:
 		EpollPoller(void);
-		void register_target(IPollable* target, int events);
-		void unregister_target(IPollable* target);
-		void modify_target(IPollable* target, int events);
-		std::vector<Event>	poll(int timeout_ms);
+		~EpollPoller() override;
+		void register_target(IPollable* target, int events) override;
+		void unregister_target(IPollable* target) override;
+		void modify_target(IPollable* target, int events) override;
+		std::vector<Event>	poll(int timeout_ms) override;
+		EpollPoller(const EpollPoller&) = delete;
+		EpollPoller& operator=(const EpollPoller&) = delete;
 	private:
 		int	epoll_fd_;
 		static const int MAX_EVENTS = 1024;
