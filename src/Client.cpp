@@ -2,7 +2,11 @@
 #include <stdexcept>
 
 Client::Client(std::unique_ptr<IByteStream> s, RequestProcessor h)
-:stream_(std::move(s)), handler_(h), read_closed_(false), read_paused_(false) {}
+:stream_(std::move(s)),
+handler_(h),
+read_closed_(false),
+read_paused_(false),
+registered_interests_(IPoller::EVENT_READABLE) {}
 
 void	Client::try_read(void) {
 	char	read_buf[BUF_SIZE];

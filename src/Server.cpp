@@ -19,7 +19,8 @@ void	Server::accept_client(void) {
 		auto [it, inserted] = clients_.try_emplace(new_stream->handle(), std::move(new_stream), handler_);
 		if (!inserted) throw std::logic_error("Duplicate handle");
 		try {
-			poller_->register_target(it->second.pollable(), IPoller::EVENT_READABLE);
+			Client& client = it->second;
+			poller_->register_target(client.pollable(), client.registered_interests());
 		} catch (...) {
 			clients_.erase(it);
 			throw;
@@ -69,12 +70,15 @@ void	Server::handle_client_state(Client& client) {
 		interests |= IPoller::EVENT_READABLE;
 	if (client.need_write())
 		interests |= IPoller::EVENT_WRITABLE;
-	if (interests != 0)
-		poller_->modify_target(client.pollable(), interests);
-	else {
+	if (interests == 0) {
 		poller_->unregister_target(client.pollable());
 		clients_.erase(client.handle());
+		return ;
 	}
+	if (interests == client.registered_interests())
+		return;
+	poller_->modify_target(client.pollable(), interests);
+	client.set_registered_interests(interests);
 }
 void	Server::run(void) {
 	poller_->register_target(transport_.get(), IPoller::EVENT_READABLE);
