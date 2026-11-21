@@ -109,6 +109,6 @@ ProcessResult	mini_json_rpc(const std::string& input) {
 		int	result_value = call_function(function_name, arg_values);
 		return (Processed{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
 	} catch (const std::exception& e) {
-		return (Processed{"{\"error\":" + std::string(e.what()) + "}\n", consumed});
+		return (Processed{"{\"error\":\"" + std::string(e.what()) + "\"}\n", consumed});
 	}
 }
