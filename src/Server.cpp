@@ -6,7 +6,7 @@
 Server::Server(ServerConfig server_config)
 :transport_(std::move(server_config.transport)),
 clients_(), handler_(server_config.handler),
-should_stop_(server_config.should_stop),
+should_stop_(std::move(server_config.should_stop)),
 poller_(std::move(server_config.poller)) {
 	if (!transport_) throw std::invalid_argument("Transport is null");
 	if (!poller_) throw std::invalid_argument("Poller is null");

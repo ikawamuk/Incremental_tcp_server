@@ -11,7 +11,7 @@ using ShouldStop = std::function<bool(void)>;
 struct ServerConfig {
 	std::unique_ptr<ITransport>	transport;
 	RequestProcessor			handler;
-	const ShouldStop&			should_stop;
+	ShouldStop					should_stop;
 	std::unique_ptr<IPoller>	poller;
 };
 
@@ -27,7 +27,7 @@ class Server {
 		std::unique_ptr<ITransport>	transport_;
 		std::map<Handle, Client>	clients_;
 		RequestProcessor			handler_;
-		const ShouldStop&			should_stop_;
+		ShouldStop					should_stop_;
 		std::unique_ptr<IPoller>	poller_;
 };
 
