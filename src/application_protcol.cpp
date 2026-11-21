@@ -58,8 +58,10 @@ ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
 
 #include "JSON.hpp"
 #include <limits>
+#include <cmath>
+
 namespace {
-	int	call_function(const std::string& function_name, int params[2]) {
+	int	call_function(const std::string& function_name, double params[2]) {
 		if (function_name == "add")
 			return (params[0] + params[1]);
 		if (function_name == "sub")
@@ -78,14 +80,20 @@ namespace {
 }
 
 ProcessResult	mini_json_rpc(const std::string& input) {
+	constexpr std::size_t MAX_FRAME_SIZE = 64 * 1024;
 	if (input.empty()) return (NeedMore{});
 	if (input.front() != '\x1E') {
 		auto next = input.find('\x1E');
 		return Discard{next == std::string::npos ? input.size() : next};
 	}
 	auto end = input.find('\x0A', 1);
-	if (end == std::string::npos) return NeedMore{};
+	if (end == std::string::npos) {
+		if (input.size() >= MAX_FRAME_SIZE)
+			throw std::runtime_error("Request frame too large");
+		return NeedMore{};
+	}
 	const std::size_t consumed = end + 1;
+	if (consumed > MAX_FRAME_SIZE) throw std::runtime_error("Request frame too large");
 	std::string json_text = input.substr(1, end - 1);
 	JSONDoc	json_doc(json_text);
 	if (!json_doc) return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
@@ -102,11 +110,15 @@ ProcessResult	mini_json_rpc(const std::string& input) {
 	val2 = json_get_array_element(params, 1);
 	if (!json_is_number(val1) || !json_is_number(val2))
 		return (Processed{"{\"error\":\"Invalid Request\"}\n", consumed});
-	int	arg_values[2];
+	double	arg_values[2];
 	arg_values[0] = json_get_number(val1);
 	arg_values[1] = json_get_number(val2);
+	if (!std::isfinite(arg_values[1]) || !std::isfinite(arg_values[1]))
+		throw std::invalid_argument("Parameters must be finite");
 	try {
-		int	result_value = call_function(function_name, arg_values);
+		double	result_value = call_function(function_name, arg_values);
+		if (!std::isfinite(result_value))
+			throw std::overflow_error("Floating-point overflow");
 		return (Processed{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
 	} catch (const std::exception& e) {
 		return (Processed{"{\"error\":\"" + std::string(e.what()) + "\"}\n", consumed});
