@@ -2,27 +2,8 @@
 # define SERVER_HPP_
 
 # include <map>
-# include "Transport.hpp"
-# include "Poller.hpp"
 # include "Client.hpp"
-
-using EventHandler = std::function<void(Event&)>;
-using ShouldStop = std::function<bool(void)>;
-
-class Reactor {
-	public:
-		explicit Reactor(std::unique_ptr<IPoller> poller);
-		void	run(const ShouldStop& should_stop);
-		void	register_handler(IPollable* target, int interests, EventHandler handler);
-		void	unregister_handler(IPollable* target);
-		void	modify_handler(IPollable* target, int interests);
-	private:
-		void	handle_event(Event& event);
-		std::unique_ptr<IPoller>		poller_;
-		std::map<Handle, EventHandler>	event_handlers_;
-};
-
-
+# include "Reactor.hpp"
 
 struct ServerConfig {
 	std::unique_ptr<ITransport>	transport;
