@@ -1,4 +1,4 @@
-# Incremental TCP Server
+# Reactor Pattern TCP Server
 
 ノンブロッキング TCP と epoll で複数のクライアントを扱う、C++ の Reactor パターン学習プロジェクトです。独自の JSON RPC 風プロトコルで四則演算を提供します。JSON の解析には同梱の自作ライブラリ rosetta_json を使います。
 
