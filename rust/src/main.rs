@@ -1,7 +1,7 @@
+
 use std::env;
 use std::process;
-use std::net::TcpListener;
-use std::io::Read;
+mod server; use server::Server;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -9,15 +9,16 @@ fn main() {
         eprintln!("Usage: {} <port number>", args[0]);
         process::exit(1);
     }
-    let listener: TcpListener = TcpListener::bind("127.0.0.1:8080")
-       .expect("Failed to bind");
-    let (mut stream, addr) = listener.accept()
-        .expect("accept failed");
-    println!("client accept: {}", addr);
-    let mut buf = [0u8; 1024];
-    let n: usize = stream.read(&mut buf)
-        .expect("read failed");
-    let text = std::str::from_utf8(&buf[..n])
-        .expect("invalid UTF-8");
-    println!("{}", text);
+    let port: u16 = args[1].parse().expect("invalid port number");
+    let server = match Server::new(port) {
+        Ok(server) => server,
+        Err(e) => {
+            eprintln!("Server initialization failed: {e}");
+            process::exit(1);
+        }
+    };
+    if let Err(e) = server.run() {
+        eprintln!("Server error: {e}");
+        process::exit(1);
+    }
 }
