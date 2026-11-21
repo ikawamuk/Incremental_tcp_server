@@ -9,3 +9,6 @@
 !lib/**/*.h
 !lib/README.md
 !lib/Makefile
+!rust/Cargo.toml
+!rust/Cargo.lock
+!rust/src/*
