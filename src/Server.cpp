@@ -40,13 +40,16 @@ void	Server::handle_event(Event& event) {
 	}
 	std::map<Handle, Client>::iterator it = clients_.find(event.handle);
 	if (it == clients_.end()) return ;
+	if (event.event_flag & IPoller::EVENT_ERROR) {
+		remove_client(it);
+		return ;
+	}
 	Client& client = it->second;
 	try {
 		if (event.event_flag & IPoller::EVENT_READABLE && client.need_read())
 			client.try_read();
 		if (event.event_flag & IPoller::EVENT_WRITABLE && client.need_write())
 			client.try_write();
-		// if (event.event_flag & IPoller::EVENT_ERROR) ;
 	} catch (std::system_error& e) {
 		if (e.code() == std::errc::interrupted) throw ;
 		std::cerr << "Client Error: " << e.what() << std::endl;
