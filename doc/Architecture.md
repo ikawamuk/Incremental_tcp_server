@@ -81,22 +81,22 @@ classDiagram
 
 	class ProcessResult {
 		<<variant>>
-		ParseSuccess|ParseNeedMore|ParseError
+		Processed|NeedMore|Discard
 	}
 
-	ProcessResult ..> ParseSuccess
-	ProcessResult ..> ParseNeedMore
-	ProcessResult ..> ParseError
+	ProcessResult ..> Processed
+	ProcessResult ..> NeedMore
+	ProcessResult ..> Discard
 
-	class ParseSuccess {
+	class Processed {
 		-response: std::string
 		-consumed: std::size_t
 	}
 
-	class ParseNeedMore {}
+	class NeedMore {}
 
-	class ParseError {
-		message: std::string
+	class Discard {
+		-consumed: std::size_t
 	}
 
 
