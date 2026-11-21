@@ -74,28 +74,33 @@ namespace {
 
 ProcessResult	mini_json_rpc(const std::string& input) {
 	if (input.empty()) return (ParseNeedMore{});
-	if (input.front() != '\x1E') return ParseError{"Invalid frame"};
+	if (input.front() != '\x1E') {
+		auto next = input.find('\x1E');
+		return ParseError{"Invalid frame",
+			next == std::string::npos ? input.size() : next};
+	}
 	auto end = input.find('\x0A', 1);
 	if (end == std::string::npos) return ParseNeedMore{};
+	const std::size_t consumed = end + 1;
 	std::string json_text = input.substr(1, end - 1);
 	JSONDoc	json_doc(json_text);
-	if (!json_doc) return (ParseError{"Parse error"});
-	if (!json_is_object(json_doc.get())) return (ParseError{"Invalid Request: request must be object"});
+	if (!json_doc) return (ParseError{"Parse error", consumed});
+	if (!json_is_object(json_doc.get())) return (ParseError{"Invalid Request: request must be object", consumed});
 	t_json	*method = json_get_object_item(json_doc.get(), "method");
 	t_json	*params = json_get_object_item(json_doc.get(), "params");
 	if (!method || !params || !json_is_string(method) || !json_is_array(params))
-		return (ParseError{"Invalid Request: method and params must be specified"});
+		return (ParseError{"Invalid Request: method and params must be specified", consumed});
 	const char	*function_name = json_get_string(method);
 	if (json_get_array_size(params) != 2)
-		return (ParseError{"Invalid Request: number of params must be two"});
+		return (ParseError{"Invalid Request: number of params must be two", consumed});
 	t_json	*val1, *val2;
 	val1 = json_get_array_element(params, 0);
 	val2 = json_get_array_element(params, 1);
 	if (!json_is_number(val1) || !json_is_number(val2))
-		return (ParseError{"Invalid Request: params must be number"});
+		return (ParseError{"Invalid Request: params must be number", consumed});
 	int	arg_values[2];
 	arg_values[0] = json_get_number(val1);
 	arg_values[1] = json_get_number(val2);
 	int	result_value = call_function(function_name, arg_values);
-	return (ParseSuccess{"{\"result\":" + std::to_string(result_value) + "}\n", json_text.length() + 2});
+	return (ParseSuccess{"{\"result\":" + std::to_string(result_value) + "}\n", consumed});
 }

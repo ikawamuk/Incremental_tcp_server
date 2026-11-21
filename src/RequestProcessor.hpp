@@ -15,6 +15,7 @@ struct ParseNeedMore {};
 
 struct ParseError {
 	std::string	message;
+	std::size_t consumed;
 };
 
 using ProcessResult = std::variant<ParseSuccess, ParseNeedMore, ParseError>;
