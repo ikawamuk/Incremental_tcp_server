@@ -57,6 +57,7 @@ ProcessResult	mini_greeting_protcol(const std::string& read_buf) {
 }
 
 #include "JSON.hpp"
+#include <charconv>
 #include <cmath>
 
 namespace {
@@ -66,7 +67,7 @@ namespace {
 		return (json);
 	}
 
-	int	call_function(const std::string& function_name, double params[2]) {
+	double	call_function(const std::string& function_name, double params[2]) {
 		if (function_name == "add")
 			return (params[0] + params[1]);
 		if (function_name == "sub")
@@ -82,13 +83,17 @@ namespace {
 	}
 
 	std::string	execute_rpc(const char* function_name, double arg_values[2]) {
-		if (!std::isfinite(arg_values[1]) || !std::isfinite(arg_values[1]))
-			throw std::invalid_argument("Parameters must be finite");
 		try {
+			if (!std::isfinite(arg_values[0]) || !std::isfinite(arg_values[1]))
+				throw std::invalid_argument("Parameters must be finite");
 			double	result_value = call_function(function_name, arg_values);
 			if (!std::isfinite(result_value))
 				throw std::overflow_error("Floating-point overflow");
-			return ("{\"result\":" + std::to_string(result_value) + "}");
+			char number[64];
+			auto [end, ec] = std::to_chars(number, number + sizeof(number), result_value);
+			if (ec != std::errc{})
+				throw std::runtime_error("Failed to format numeric result");
+			return ("{\"result\":" + std::string(number, end) + "}");
 		} catch (const std::exception& e) {
 			return ("{\"error\":\"" + std::string(e.what()) + "\"}");
 		}
